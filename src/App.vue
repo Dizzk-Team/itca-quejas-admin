@@ -1,13 +1,13 @@
 <template>
   <v-app>
-    <!-- Drawer de Vuetify -->
-    <v-navigation-drawer color="#0f233a" class="custom-drawer" theme="dark" permanent expand-on-hover rail
+    <!-- Drawer de Vuetify (oculto en el login) -->
+    <v-navigation-drawer v-if="!esLogin" color="#9b0c23" class="custom-drawer" theme="dark" permanent expand-on-hover rail
       location="left">
       <!-- Cabecera con Logo ITCA-FEPADE (Opción 2: Vector SVG de la silueta) -->
       <v-list-item class="py-3">
         <template #prepend>
           <v-avatar color="white" rounded="lg" size="38" class="me-3 d-flex align-center justify-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0f233a" stroke-width="2"
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9b0c23" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
               <!-- Techo triangular -->
               <path d="M3 9.5L12 3l9 6.5" />
@@ -37,18 +37,18 @@
         </v-list-subheader>
 
         <v-list-item link to="/" title="Inicio" prepend-icon="mdi-view-grid-outline" class="text-white"
-          active-class="bg-blue-darken-3 text-white"></v-list-item>
+          active-class="text-white"></v-list-item>
 
         <v-list-item link to="/SolicitudesView" title="Gestión de Solicitudes" prepend-icon="mdi-clipboard-text-outline"
-          class="text-white" active-class="bg-blue-darken-3 text-white"></v-list-item>
+          class="text-white" active-class="text-white"></v-list-item>
 
         <v-list-item link to="/MetricasView" title="Métricas" prepend-icon="mdi-chart-line" class="text-white"
-          active-class="bg-blue-darken-3 text-white"></v-list-item>
+          active-class="text-white"></v-list-item>
       </v-list>
     </v-navigation-drawer>
 
-    <!-- Barra superior -->
-    <AppBar />
+    <!-- Barra superior (oculta en el login) -->
+    <AppBar v-if="!esLogin" />
 
     <!-- Contenido principal -->
     <v-main class="main-wrapper">
@@ -58,8 +58,12 @@
 </template>
 
 <script setup lang="ts">
-  import { RouterView } from 'vue-router'
+  import { computed } from 'vue'
+  import { RouterView, useRoute } from 'vue-router'
   import AppBar from './components/AppBar.vue'
+
+  const route = useRoute()
+  const esLogin = computed(() => route.path === '/login')
 </script>
 
 <style>
@@ -73,12 +77,17 @@
 
   /* Subencabezado de sección */
   .custom-drawer .v-list-subheader {
-    color: #94a3b8 !important;
+    color: #e8cf75 !important;
+  }
+
+  /* Línea dorada en el borde del menú */
+  .custom-drawer {
+    border-right: 3px solid #c9a227 !important;
   }
 
   /* Sobrescribe el estado activo (seleccionado) */
   .v-list-item--active {
-    background-color: #1e3553 !important;
+    background-color: rgba(201, 162, 39, 0.35) !important;
     color: #ffffff !important;
   }
 
