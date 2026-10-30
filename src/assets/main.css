@@ -22,14 +22,19 @@ a,
 }
 
 @media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
+/* Eliminar el limite de ancho máximo y los márgenes automáticos */
+#app {
+  width: 100%;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-weight: normal;
+}
 
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
-  }
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  background-color: #f3f5f8;
+}
 }
