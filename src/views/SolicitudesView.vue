@@ -1,819 +1,498 @@
 <template>
     <div class="layout-container">
-        <!-- Sidebar / Menú Lateral 
-        <aside class="sidebar">
-            <div class="brand">
-                <div class="logo-box">ITCA-FEPADE</div>
+        <!-- Encabezado -->
+        <div class="d-flex justify-space-between align-center mb-4">
+            <div>
+                <h1 class="text-h5 font-weight-bold text-slate-800">Gestión de Solicitudes</h1>
+                <p class="text-caption text-grey-darken-1">
+                    Supervisa, organiza y asigna los reportes de mantenimiento del campus.
+                </p>
             </div>
 
-            <div class="nav-section">
-                <span class="section-title">ADMINISTRACIÓN</span>
-                <nav class="nav-menu">
-                    <a href="#" class="nav-item">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="7" height="7" rx="1" />
-                            <rect x="14" y="3" width="7" height="7" rx="1" />
-                            <rect x="14" y="14" width="7" height="7" rx="1" />
-                            <rect x="3" y="14" width="7" height="7" rx="1" />
-                        </svg>
-                        Inicio
-                    </a>
-                    <a href="#" class="nav-item active">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                            <line x1="16" y1="13" x2="8" y2="13" />
-                            <line x1="16" y1="17" x2="8" y2="17" />
-                        </svg>
-                        Gestión de Solicitudes
-                        <span class="active-indicator"></span>
-                    </a>
-                    <a href="#" class="nav-item">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="20" x2="18" y2="10" />
-                            <line x1="12" y1="20" x2="12" y2="4" />
-                            <line x1="6" y1="20" x2="6" y2="14" />
-                        </svg>
-                        Métricas
-                    </a>
-                </nav>
+        </div>
+
+        <!-- Tarjetas KPI Informativas -->
+        <div class="kpi-summary-grid mb-6">
+            <!-- Tarjeta 1: Total Solicitudes -->
+            <v-card class="summary-card pa-4" variant="outlined">
+                <div class="d-flex justify-space-between align-start mb-2">
+                    <span class="card-title-text">Solicitudes totales</span>
+                    <v-avatar color="blue-lighten-5" size="34" rounded="lg">
+                        <v-icon icon="mdi-file-document-outline" color="blue-darken-2" size="20"></v-icon>
+                    </v-avatar>
+                </div>
+                <div class="card-number-val mb-1">{{ totalSolicitudes }}</div>
+                <div class="card-sub-text">Registradas este mes</div>
+            </v-card>
+
+            <!-- Tarjeta 2: Pendientes -->
+            <v-card class="summary-card pa-4" variant="outlined">
+                <div class="d-flex justify-space-between align-start mb-2">
+                    <span class="card-title-text">Pendientes</span>
+                    <v-avatar color="amber-lighten-5" size="34" rounded="lg">
+                        <v-icon icon="mdi-clock-outline" color="amber-darken-3" size="20"></v-icon>
+                    </v-avatar>
+                </div>
+                <div class="card-number-val mb-1">{{ totalPendientes }}</div>
+                <div class="card-sub-text">Por asignar a un técnico</div>
+            </v-card>
+
+            <!-- Tarjeta 3: En proceso -->
+            <v-card class="summary-card pa-4" variant="outlined">
+                <div class="d-flex justify-space-between align-start mb-2">
+                    <span class="card-title-text">En proceso</span>
+                    <v-avatar color="light-blue-lighten-5" size="34" rounded="lg">
+                        <v-icon icon="mdi-wrench-outline" color="light-blue-darken-2" size="20"></v-icon>
+                    </v-avatar>
+                </div>
+                <div class="card-number-val mb-1">{{ totalEnProceso }}</div>
+                <div class="card-sub-text">Con atención en curso</div>
+            </v-card>
+
+            <!-- Tarjeta 4: Resueltas -->
+            <v-card class="summary-card pa-4" variant="outlined">
+                <div class="d-flex justify-space-between align-start mb-2">
+                    <span class="card-title-text">Resueltas</span>
+                    <v-avatar color="green-lighten-5" size="34" rounded="lg">
+                        <v-icon icon="mdi-check-circle-outline" color="green-darken-2" size="20"></v-icon>
+                    </v-avatar>
+                </div>
+                <div class="card-number-val mb-1">{{ totalResueltas }}</div>
+                <div class="card-sub-text">Intervenciones finalizadas</div>
+            </v-card>
+        </div>
+
+        <!-- Filtros y Búsqueda -->
+        <div class="d-flex gap-3 mb-6">
+            <div class="search-input-wrapper flex-grow-1">
+                <v-icon icon="mdi-magnify" class="search-icon" size="20"></v-icon>
+                <input v-model="filtroTexto" type="text" placeholder="Buscar por creador, ubicación o descripción..." />
             </div>
 
-            <div class="sidebar-footer">
-                <div class="info-card">
-                    <div class="info-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 21h18M3 10h18M3 7l9-4 9 4M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3" />
-                        </svg>
-                    </div>
-                    <h4>Dirección de Infraestructura</h4>
-                    <p>Cuidamos los espacios donde se construye el futuro.</p>
+            <select v-model="filtroEstado" class="custom-select">
+                <option value="">Todos los estados</option>
+                <option value="Pendiente">Pendiente</option>
+                <option value="En proceso">En proceso</option>
+                <option value="Resuelta">Resuelta</option>
+            </select>
+
+            <select v-model="filtroCategoria" class="custom-select">
+                <option value="">Todas las categorías</option>
+                <option value="Equipo">Equipo</option>
+                <option value="Infraestructura">Infraestructura</option>
+                <option value="Limpieza">Limpieza</option>
+            </select>
+        </div>
+
+        <!-- Tabla -->
+        <v-card class="pa-5 card-table" variant="outlined">
+            <div class="d-flex justify-space-between align-center mb-4">
+                <div class="d-flex align-center gap-2">
+                    <h2 class="text-subtitle-1 font-weight-bold text-slate-800">Reportes de mantenimiento</h2>
+                    <v-chip size="x-small" color="primary" class="font-weight-bold">
+                        {{ solicitudesFiltradas.length }}
+                    </v-chip>
                 </div>
-                <span class="version-text">Sistema de mantenimiento - v2.4</span>
+                <v-btn variant="outlined" size="small" prepend-icon="mdi-download" class="text-none">
+                    Exportar
+                </v-btn>
             </div>
-        </aside>-->
 
-        <!-- Contenido Principal -->
-        <main class="main-content">
-            <!-- Header Superior -->
-            <header class="top-header">
-                <div class="breadcrumb">
-                    <span>Mantenimiento</span>
-                    <span class="separator">&gt;</span>
-                    <span class="current">Gestión de Solicitudes</span>
-                </div>
-            </header>
+            <!-- Estado Carga -->
+            <div v-if="cargando" class="text-center py-8">
+                <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                <p class="text-caption text-grey-darken-1 mt-2">Cargando datos desde la API...</p>
+            </div>
 
-            <!-- Encabezado de Sección -->
-            <section class="page-title-section">
-                <div>
-                    <h1>Gestión de Solicitudes</h1>
-                    <p class="subtitle">Supervisa, organiza y asigna los reportes de mantenimiento del campus.</p>
-                </div>
-                <button class="btn-primary">
-                    <span>+</span> Nueva solicitud
-                </button>
-            </section>
+            <!-- Estado Error -->
+            <v-alert v-else-if="error" type="error" variant="tonal" class="my-4">
+                {{ error }}
+            </v-alert>
 
-            <!-- Tarjetas de Estadísticas -->
-            <section class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-info">
-                        <span class="stat-title">Solicitudes totales</span>
-                        <span class="stat-value">0</span>
-                        <span class="stat-meta">Registradas este mes</span>
-                    </div>
-                    <div class="stat-icon-wrapper blue">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-info">
-                        <span class="stat-title">Pendientes</span>
-                        <span class="stat-value">0</span>
-                        <span class="stat-meta">Por asignar a un técnico</span>
-                    </div>
-                    <div class="stat-icon-wrapper yellow">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="12 6 12 12 16 14" />
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-info">
-                        <span class="stat-title">En proceso</span>
-                        <span class="stat-value">0</span>
-                        <span class="stat-meta">Con atención en curso</span>
-                    </div>
-                    <div class="stat-icon-wrapper info-blue">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path
-                                d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-info">
-                        <span class="stat-title">Resueltas</span>
-                        <span class="stat-value">0</span>
-                        <span class="stat-meta">Intervenciones finalizadas</span>
-                    </div>
-                    <div class="stat-icon-wrapper green">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                            <polyline points="22 4 12 14.01 9 11.01" />
-                        </svg>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Barra de Filtros -->
-            <section class="filters-bar">
-                <div class="search-input-wrapper">
-                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                    <input type="text" placeholder="Buscar por ID, ubicación o problema..." />
-                </div>
-
-                <div class="select-group">
-                    <div class="select-wrapper">
-                        <label>Estado</label>
-                        <select>
-                            <option>Todos los estados</option>
-                        </select>
-                    </div>
-                    <div class="select-wrapper">
-                        <label>Categoría</label>
-                        <select>
-                            <option>Todas las categorías</option>
-                        </select>
-                    </div>
-                    <div class="select-wrapper">
-                        <label>Período</label>
-                        <select>
-                            <option>Octubre de 2026</option>
-                        </select>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Tabla de Reportes -->
-            <section class="table-container">
-                <div class="table-header">
-                    <div>
-                        <h2>Reportes de mantenimiento <span class="badge-count">128</span></h2>
-                        <p class="table-subtitle">Consulta las solicitudes y coordina su atención.</p>
-                    </div>
-                    <button class="btn-secondary">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                            <polyline points="7 10 12 15 17 10" />
-                            <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        Exportar
-                    </button>
+            <!-- Tabla principal -->
+            <div v-else class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>CREADOR ID</th>
+                            <th>FECHA</th>
+                            <th>UBICACIÓN EXACTA</th>
+                            <th>DESCRIPCIÓN</th>
+                            <th>CATEGORÍA</th>
+                            <th>ESTADO</th>
+                            <th class="text-center">EVIDENCIA</th>
+                            <th class="text-center">ACCIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-if="solicitudesFiltradas.length === 0">
+                            <td colspan="8" class="text-center text-grey-darken-1 py-6">
+                                No se encontraron registros que coincidan con la búsqueda.
+                            </td>
+                        </tr>
+                        <tr v-for="item in solicitudesFiltradas" :key="item._id || item.id || item.creador_id">
+                            <td class="font-weight-bold text-primary text-mono">
+                                {{ acortarId(item.creador_id) }}
+                            </td>
+                            <td>{{ formatearFecha(item.created_at) }}</td>
+                            <td>{{ item.ubicacion_exacta }}</td>
+                            <td class="col-descripcion">{{ item.descripcion }}</td>
+                            <td>
+                                <span class="category-tag">{{ item.categoria }}</span>
+                            </td>
+                            <td>
+                                <span class="badge-status" :class="claseEstado(item.estado)">
+                                    ● {{ item.estado }}
+                                </span>
+                            </td>
+                            <!-- Columna EVIDENCIA en la tabla -->
+                            <td class="text-center">
+                                <template v-if="obtenerUrlImagen(item.evidencias_url)">
+                                    <v-img :src="obtenerUrlImagen(item.evidencias_url)!" alt="Evidencia" width="42"
+                                        height="42" cover class="evidence-thumb mx-auto rounded-lg"
+                                        @click="verImagen(obtenerUrlImagen(item.evidencias_url)!)">
+                                        <template #placeholder>
+                                            <div
+                                                class="d-flex align-center justify-center fill-height bg-grey-lighten-3">
+                                                <v-progress-circular indeterminate size="14"
+                                                    color="primary"></v-progress-circular>
+                                            </div>
+                                        </template>
+                                        <template #error>
+                                            <!-- Permite hacer clic aunque falle la miniatura para abrir la URL original -->
+                                            <div class="d-flex align-center justify-center fill-height bg-grey-lighten-3 cursor-pointer"
+                                                title="Abrir URL de evidencia"
+                                                @click="verImagen(obtenerUrlImagen(item.evidencias_url)!)">
+                                                <v-icon icon="mdi-image-broken-variant" color="warning"
+                                                    size="18"></v-icon>
+                                            </div>
+                                        </template>
+                                    </v-img>
+                                </template>
+                                <span v-else class="text-caption text-grey-lighten-1">-</span>
+                            </td>
+                            <td class="text-center">
+                                <v-btn variant="outlined" size="x-small" color="slate-700" class="text-none">
+                                    Asignar
+                                </v-btn>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </v-card>
+        <!-- Modal para previsualizar o inspeccionar la URL -->
+        <v-dialog v-model="dialogImagen" max-width="700">
+            <v-card class="pa-4 rounded-lg">
+                <div class="d-flex justify-space-between align-center mb-3">
+                    <span class="text-subtitle-1 font-weight-bold text-slate-800">Evidencia adjunta</span>
+                    <v-btn icon="mdi-close" variant="text" size="small" @click="dialogImagen = false"></v-btn>
                 </div>
 
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Fecha <span>↓</span></th>
-                                <th>Ubicación</th>
-                                <th>Problema</th>
-                                <th>Estado</th>
-                                <th class="text-right">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="font-bold text-blue">SOL-0128</td>
-                                <td>
-                                    <div class="cell-main">16 oct 2026</div>
-                                    <div class="cell-sub">09:42 h</div>
-                                </td>
-                                <td>
-                                    <div class="cell-main">Edificio de Ingeniería</div>
-                                    <div class="cell-sub">Piso 2 · Aula 204</div>
-                                </td>
-                                <td>
-                                    <div class="cell-main">Fuga de agua en lavamanos</div>
-                                    <div class="cell-sub">Plomería</div>
-                                </td>
-                                <td><span class="status-pill pending">● Pendiente</span></td>
-                                <td class="text-right"><button class="btn-action">Asignar</button></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="d-flex justify-center align-center bg-grey-lighten-4 rounded-lg pa-4 mb-3">
+                    <img :src="imagenSeleccionada" alt="Evidencia" class="modal-preview-img" />
                 </div>
-            </section>
-        </main>
+
+                <div class="d-flex justify-end">
+                    <v-btn :href="imagenSeleccionada" target="_blank" color="primary" variant="tonal"
+                        prepend-icon="mdi-open-in-new" size="small" class="text-none">
+                        Abrir enlace directo
+                    </v-btn>
+                </div>
+            </v-card>
+        </v-dialog>
     </div>
 </template>
-<script>
-    export default {
-        name: 'SolicitudesView',
 
+<script setup lang="ts">
+    import { ref, computed, onMounted } from 'vue'
+    import { useStore } from '../store'
+
+    const store = useStore()
+
+    const filtroTexto = ref('')
+    const filtroEstado = ref('')
+    const filtroCategoria = ref('')
+
+    const solicitudes = computed(() => store.state.solicitudes)
+    const cargando = computed(() => store.state.cargando)
+    const error = computed(() => store.state.error)
+
+    // Variables reactivas para el modal de imágenes
+    const dialogImagen = ref(false)
+    const imagenSeleccionada = ref('')
+
+    const verImagen = (url: string) => {
+        imagenSeleccionada.value = url
+        dialogImagen.value = true
+    }
+
+    // Extrae la URL válida ya sea si la API envía un Array o un String
+    const obtenerUrlImagen = (evidencia: any): string | null => {
+        if (!evidencia) return null
+        if (Array.isArray(evidencia) && evidencia.length > 0) return evidencia[0]
+        if (typeof evidencia === 'string' && evidencia.trim() !== '') return evidencia
+        return null
+    }
+
+    // Conteos dinámicos calculados desde el array de solicitudes de Vuex
+    const totalSolicitudes = computed(() => solicitudes.value.length)
+
+    const totalPendientes = computed(() =>
+        solicitudes.value.filter(s => s.estado?.toLowerCase() === 'pendiente').length
+    )
+
+    const totalEnProceso = computed(() =>
+        solicitudes.value.filter(s => s.estado?.toLowerCase() === 'en proceso').length
+    )
+
+    const totalResueltas = computed(() =>
+        solicitudes.value.filter(s =>
+            s.estado?.toLowerCase() === 'resuelta' || s.estado?.toLowerCase() === 'resueltas'
+        ).length
+    )
+
+    onMounted(() => {
+        store.dispatch('fetchSolicitudes')
+    })
+
+    // Filtrado reactivo por texto (creador, ubicación, descripción), estado y categoría
+    const solicitudesFiltradas = computed(() => {
+        return solicitudes.value.filter(s => {
+            const texto = filtroTexto.value.toLowerCase()
+            const coincideTexto =
+                (s.creador_id && s.creador_id.toLowerCase().includes(texto)) ||
+                (s.ubicacion_exacta && s.ubicacion_exacta.toLowerCase().includes(texto)) ||
+                (s.descripcion && s.descripcion.toLowerCase().includes(texto))
+
+            const coincideEstado = !filtroEstado.value || s.estado === filtroEstado.value
+            const coincideCategoria = !filtroCategoria.value || s.categoria === filtroCategoria.value
+
+            return coincideTexto && coincideEstado && coincideCategoria
+        })
+    })
+
+    // Formatea timestamps ISO tipo "2026-11-05T04:12:39.025000Z" a "05 nov 2026, 04:12 h"
+    const formatearFecha = (fechaStr: string) => {
+        if (!fechaStr) return '-'
+        const fecha = new Date(fechaStr)
+        return fecha.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        }) + ` ${fecha.getHours().toString().padStart(2, '0')}:${fecha.getMinutes().toString().padStart(2, '0')} h`
+    }
+
+    // Muestra los primeros 8 caracteres del creador_id para evitar sobrecargar la tabla
+    const acortarId = (id: string) => {
+        if (!id) return '-'
+        return id.length > 10 ? `${id.substring(0, 8)}...` : id
+    }
+
+    const claseEstado = (estado: string) => {
+        switch (estado) {
+            case 'Pendiente':
+                return 'badge-pendiente'
+            case 'En proceso':
+                return 'badge-proceso'
+            case 'Resuelta':
+                return 'badge-resuelta'
+            default:
+                return ''
+        }
     }
 </script>
+
 <style scoped>
-
-    /* Reset & Estilos Base */
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-
     .layout-container {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-        padding: 1rem 2rem;
-        box-sizing: border-box;
-    }
-
-    /* Sidebar */
-    .sidebar {
-        width: 250px;
-        background-color: #0f233a;
-        color: #94a3b8;
-        display: flex;
-        flex-direction: column;
-        padding: 1.5rem 1rem;
-        flex-shrink: 0;
-    }
-
-    .brand {
-        margin-bottom: 2rem;
-        padding: 0 0.5rem;
-    }
-
-    .logo-box {
-        border: 2px dashed #38bdf8;
-        color: #ffffff;
-        font-weight: 700;
-        font-size: 0.85rem;
-        padding: 0.4rem 0.6rem;
-        display: inline-block;
-        border-radius: 4px;
-    }
-
-    .section-title {
-        font-size: 0.68rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        color: #64748b;
-        margin-bottom: 0.75rem;
-        display: block;
-        padding: 0 0.5rem;
-    }
-
-    .nav-menu {
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-    }
-
-    .nav-item {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.65rem 0.75rem;
-        color: #94a3b8;
-        text-decoration: none;
-        font-size: 0.875rem;
-        font-weight: 500;
-        border-radius: 6px;
-        position: relative;
-        transition: all 0.2s;
-    }
-
-    .nav-item:hover {
-        background-color: #1e324d;
-        color: #ffffff;
-    }
-
-    .nav-item.active {
-        background-color: #1e3553;
-        color: #ffffff;
-    }
-
-    .active-indicator {
-        position: absolute;
-        right: 0;
-        top: 20%;
-        height: 60%;
-        width: 3px;
-        background-color: #38bdf8;
-        border-radius: 2px;
-    }
-
-    .icon {
-        width: 18px;
-        height: 18px;
-    }
-
-    .sidebar-footer {
-        margin-top: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .info-card {
-        background-color: #19314c;
-        border-radius: 8px;
-        padding: 1rem;
-        color: #e2e8f0;
-    }
-
-    .info-icon {
-        width: 24px;
-        height: 24px;
-        margin-bottom: 0.5rem;
-    }
-
-    .info-card h4 {
-        font-size: 0.8rem;
-        color: #ffffff;
-        margin-bottom: 0.25rem;
-    }
-
-    .info-card p {
-        font-size: 0.72rem;
-        color: #94a3b8;
-        line-height: 1.3;
-    }
-
-    .version-text {
-        font-size: 0.68rem;
-        color: #64748b;
-        padding: 0 0.5rem;
-    }
-
-    /* Main Content */
-    .main-content {
-        flex: 1;
-        /* Ocupa todo el espacio sobrante a la derecha de la sidebar */
         width: 100%;
         padding: 1.5rem 2rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1.2rem;
         box-sizing: border-box;
     }
 
-    /* Header Superior */
-    .top-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+    .text-slate-800 {
+        color: #0f172a !important;
     }
 
-    .breadcrumb {
-        font-size: 0.8rem;
-        color: #64748b;
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-    }
-
-    .breadcrumb .current {
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    .user-area {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .icon-btn {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 50%;
-        width: 36px;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: #64748b;
-    }
-
-    .icon-btn svg {
-        width: 18px;
-        height: 18px;
-    }
-
-    .user-profile {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-    }
-
-    .avatar {
-        width: 34px;
-        height: 34px;
-        background-color: #dbeafe;
-        color: #1d4ed8;
-        font-weight: 700;
-        font-size: 0.8rem;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .user-info {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .user-name {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #0f172a;
-    }
-
-    .user-role {
-        font-size: 0.7rem;
-        color: #64748b;
-    }
-
-    .chevron {
-        width: 14px;
-        height: 14px;
-        color: #64748b;
-    }
-
-    /* Page Title Section */
-    .page-title-section {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .page-title-section h1 {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .subtitle {
-        font-size: 0.85rem;
-        color: #64748b;
-        margin-top: 0.2rem;
-    }
-
-    .btn-primary {
-        background-color: #2563eb;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        padding: 0.6rem 1.2rem;
-        font-size: 0.85rem;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        cursor: pointer;
-    }
-
-    /* Stats Grid */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
-    }
-
-    .stat-card {
-        background: white;
-        border-radius: 10px;
-        padding: 1.2rem;
-        border: 1px solid #e2e8f0;
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-    }
-
-    .stat-info {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .stat-title {
-        font-size: 0.75rem;
-        color: #64748b;
-        margin-bottom: 0.3rem;
-    }
-
-    .stat-value {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .stat-meta {
-        font-size: 0.68rem;
-        color: #94a3b8;
-        margin-top: 0.3rem;
-    }
-
-    .stat-icon-wrapper {
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .stat-icon-wrapper svg {
-        width: 18px;
-        height: 18px;
-    }
-
-    .stat-icon-wrapper.blue {
-        background-color: #eff6ff;
-        color: #2563eb;
-    }
-
-    .stat-icon-wrapper.yellow {
-        background-color: #fefce8;
-        color: #ca8a04;
-    }
-
-    .stat-icon-wrapper.info-blue {
-        background-color: #f0f9ff;
-        color: #0284c7;
-    }
-
-    .stat-icon-wrapper.green {
-        background-color: #f0fdf4;
-        color: #16a34a;
-    }
-
-    /* Filters Bar */
-    .filters-bar {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
+    .card-table {
+        background-color: #ffffff !important;
+        border-color: #e2e8f0 !important;
+        border-radius: 12px !important;
     }
 
     .search-input-wrapper {
-        flex: 1;
         position: relative;
+        display: flex;
+        align-items: center;
     }
 
     .search-icon {
         position: absolute;
         left: 0.75rem;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 16px;
-        height: 16px;
-        color: #94a3b8;
+        color: #64748b;
     }
 
     .search-input-wrapper input {
         width: 100%;
-        padding: 0.55rem 0.75rem 0.55rem 2.2rem;
+        padding: 0.5rem 0.75rem 0.5rem 2.4rem;
         border: 1px solid #e2e8f0;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        outline: none;
+        border-radius: 8px;
+        font-size: 0.85rem;
         background-color: #ffffff;
         color: #0f172a !important;
-        /* <-- Esto fuerza que la letra sea oscura al escribir */
+        outline: none;
     }
 
-    /* Opcional: Asegura que el texto de ayuda (placeholder) se vea en un tono gris legible */
     .search-input-wrapper input::placeholder {
         color: #94a3b8;
     }
 
-    .select-group {
-        display: flex;
-        gap: 0.75rem;
-    }
-
-    .select-wrapper label {
-        font-size: 0.68rem;
-        font-weight: 600;
-        color: #0f172a;
-        display: block;
-        margin-bottom: 0.2rem;
-    }
-
-    .select-wrapper select {
-        padding: 0.5rem 0.75rem;
+    .custom-select {
+        background-color: #ffffff;
         border: 1px solid #e2e8f0;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        background: white;
-        color: #334155;
+        border-radius: 8px;
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
+        color: #0f172a !important;
         outline: none;
     }
 
-    /* Table Container */
-    .table-container {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 1.25rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .table-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .table-header h2 {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #0f172a;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .badge-count {
-        background-color: #eff6ff;
-        color: #2563eb;
-        font-size: 0.7rem;
-        padding: 0.1rem 0.4rem;
-        border-radius: 10px;
-    }
-
-    .table-subtitle {
-        font-size: 0.75rem;
-        color: #64748b;
-        margin-top: 0.1rem;
-    }
-
-    .btn-secondary {
-        background-color: white;
-        border: 1px solid #e2e8f0;
-        padding: 0.45rem 0.8rem;
-        border-radius: 6px;
-        font-size: 0.78rem;
-        font-weight: 600;
-        color: #334155;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        cursor: pointer;
-    }
-
-    .btn-secondary svg {
-        width: 14px;
-        height: 14px;
-    }
-
-    /* Table */
-    .table-wrapper {
+    .table-responsive {
+        width: 100%;
         overflow-x: auto;
     }
 
-    table {
+    .custom-table {
         width: 100%;
         border-collapse: collapse;
+        font-size: 0.85rem;
         text-align: left;
-        font-size: 0.78rem;
     }
 
-    th {
+    .custom-table th {
+        padding: 0.75rem 1rem;
         color: #64748b;
         font-weight: 600;
-        padding: 0.65rem 0.75rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .custom-table td {
+        padding: 0.85rem 1rem;
+        color: #334155;
         border-bottom: 1px solid #f1f5f9;
     }
 
-    td {
-        padding: 0.75rem;
-        border-bottom: 1px solid #f8fafc;
-        vertical-align: middle;
+    .col-descripcion {
+        max-width: 280px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
-    .font-bold {
-        font-weight: 600;
+    .text-mono {
+        font-family: monospace;
     }
 
-    .text-blue {
-        color: #2563eb;
-    }
-
-    .text-right {
-        text-align: right;
-    }
-
-    .cell-main {
+    .category-tag {
+        background-color: #f1f5f9;
+        color: #475569;
+        padding: 0.2rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
         font-weight: 500;
-        color: #1e293b;
     }
 
-    .cell-sub {
-        font-size: 0.7rem;
-        color: #94a3b8;
-        margin-top: 0.1rem;
-    }
-
-    /* Badges de Estado */
-    .status-pill {
-        font-size: 0.7rem;
-        font-weight: 600;
+    .badge-status {
         padding: 0.25rem 0.6rem;
         border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
         display: inline-block;
     }
 
-    .status-pill.pending {
+    .badge-pendiente {
         background-color: #fef3c7;
-        color: #b45309;
+        color: #d97706;
     }
 
-    .status-pill.in-progress {
-        background-color: #dbeafe;
-        color: #1d4ed8;
+    .badge-proceso {
+        background-color: #e0f2fe;
+        color: #0284c7;
     }
 
-    .status-pill.resolved {
+    .badge-resuelta {
         background-color: #dcfce7;
         color: #15803d;
     }
 
-    .btn-action {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 4px;
-        padding: 0.3rem 0.6rem;
-        font-size: 0.72rem;
-        font-weight: 600;
-        color: #334155;
+    .gap-2 {
+        gap: 0.5rem;
+    }
+
+    .gap-3 {
+        gap: 0.75rem;
+    }
+
+    .evidence-thumb {
         cursor: pointer;
-    }
-
-    /* Paginación */
-    .pagination-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: 0.5rem;
-    }
-
-    .pagination-info {
-        font-size: 0.72rem;
-        color: #64748b;
-    }
-
-    .pagination-controls {
-        display: flex;
-        gap: 0.25rem;
-        align-items: center;
-    }
-
-    .page-btn {
-        width: 26px;
-        height: 26px;
-        border-radius: 4px;
         border: 1px solid #e2e8f0;
-        background: white;
-        font-size: 0.72rem;
-        cursor: pointer;
-        color: #334155;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .page-btn.active {
-        background-color: #2563eb;
-        color: white;
-        border-color: #2563eb;
+    .evidence-thumb:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
     }
 
-    .dots {
-        font-size: 0.72rem;
-        color: #94a3b8;
-        padding: 0 0.2rem;
+    .modal-preview-img {
+        max-width: 100%;
+        max-height: 75vh;
+        object-fit: contain;
+        border-radius: 6px;
+    }
+
+    /* Rejilla responsiva de 4 columnas */
+    .kpi-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.25rem;
+    }
+
+    .summary-card {
+        background-color: #ffffff !important;
+        border-color: #e2e8f0 !important;
+        border-radius: 12px !important;
+        box-shadow: none !important;
+    }
+
+    .card-title-text {
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: #64748b !important;
+    }
+
+    .card-number-val {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #0f172a !important;
+        line-height: 1.1;
+    }
+
+    .card-sub-text {
+        font-size: 0.75rem;
+        color: #94a3b8 !important;
+    }
+
+    /* Adaptación para pantallas pequeñas */
+    @media (max-width: 960px) {
+        .kpi-summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 600px) {
+        .kpi-summary-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
