@@ -21,6 +21,8 @@ export interface State {
 
 export const key: InjectionKey<Store<State>> = Symbol()
 
+const API_URL = 'https://itca-quejas-api.onrender.com/api'
+
 export const store = createStore<State>({
   state: {
     solicitudes: [],
@@ -37,33 +39,98 @@ export const store = createStore<State>({
     SET_ERROR(state, payload: string | null) {
       state.error = payload
     },
+    UPDATE_SOLICITUD_ESTADO(state, payload: { id: string; estado: string }) {
+      const item = state.solicitudes.find(s => (s._id || s.id) === payload.id)
+      if (item) {
+        item.estado = payload.estado
+      }
+    },
   },
-  // En src/store/index.ts
   actions: {
     async fetchSolicitudes({ commit }) {
       commit('SET_CARGANDO', true)
       commit('SET_ERROR', null)
       try {
-        const response = await fetch('https://itca-quejas-api.onrender.com/api/reportes')
-        
+        const response = await fetch(`${API_URL}/reportes`)
+
         if (!response.ok) {
           throw new Error(`Error HTTP: ${response.status}`)
         }
 
         const res = await response.json()
-        
-        // Extrae la lista si la API la envía dentro de "data" o "solicitudes", o usa res si es array directo
-        const listaSolicitudes = Array.isArray(res) 
-          ? res 
-          : (res.data || res.solicitudes || [])
+        const listaSolicitudes = Array.isArray(res)
+          ? res
+          : res.data || res.solicitudes || []
 
         commit('SET_SOLICITUDES', listaSolicitudes)
       } catch (err: any) {
         commit('SET_ERROR', err.message || 'Error al conectar con la API')
-        commit('SET_SOLICITUDES', []) // Restablece a array vacío si falla
+        commit('SET_SOLICITUDES', [])
       } finally {
         commit('SET_CARGANDO', false)
       }
+    },
+
+    async obtenerTokenTemporal() {
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          correo_institucional: 'diego.huezo@itca.edu.sv',
+          password: 'password',
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: No se pudo autenticar en la API`)
+      }
+
+      const data = await response.json()
+      const token = data.access_token || data.token || data.data?.token
+
+      if (!token) {
+        throw new Error('La respuesta de /login no devolvió un token válido')
+      }
+
+      localStorage.setItem('token', token)
+      return token
+    },
+
+    async actualizarEstadoSolicitud({ commit, dispatch }, payload: { id: string; estado: string }) {
+      let token = localStorage.getItem('token')
+
+      if (!token) {
+        token = await dispatch('obtenerTokenTemporal')
+      }
+
+      const enviarPeticion = (authToken: string) =>
+        fetch(`${API_URL}/reportes/${payload.id}/estado`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ estado: payload.estado }),
+        })
+
+      let response = await enviarPeticion(token!)
+
+      // Si el token guardado expiró, renueva credenciales y reintenta una vez
+      if (response.status === 401) {
+        localStorage.removeItem('token')
+        token = await dispatch('obtenerTokenTemporal')
+        response = await enviarPeticion(token!)
+      }
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: No se pudo actualizar el estado`)
+      }
+
+      commit('UPDATE_SOLICITUD_ESTADO', payload)
     },
   },
 })
