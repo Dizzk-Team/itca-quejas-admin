@@ -3,24 +3,12 @@
     <!-- Drawer de Vuetify (oculto en el login) -->
     <v-navigation-drawer v-if="!esLogin" color="#9b0c23" class="custom-drawer" theme="dark" permanent expand-on-hover rail
       location="left">
-      <!-- Cabecera con Logo ITCA-FEPADE (Opción 2: Vector SVG de la silueta) -->
+      
+      <!-- Cabecera con Imagen de Logo -->
       <v-list-item class="py-3">
         <template #prepend>
-          <v-avatar color="white" rounded="lg" size="38" class="me-3 d-flex align-center justify-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9b0c23" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <!-- Techo triangular -->
-              <path d="M3 9.5L12 3l9 6.5" />
-              <line x1="3" y1="9.5" x2="21" y2="9.5" />
-              <!-- Columnas -->
-              <line x1="5" y1="13" x2="5" y2="18" />
-              <line x1="8.5" y1="13" x2="8.5" y2="18" />
-              <line x1="12" y1="13" x2="12" y2="18" />
-              <line x1="15.5" y1="13" x2="15.5" y2="18" />
-              <line x1="19" y1="13" x2="19" y2="18" />
-              <!-- Base inferior -->
-              <line x1="3" y1="20.5" x2="21" y2="20.5" />
-            </svg>
+          <v-avatar color="white" rounded="lg" size="38" class="me-3 d-flex align-center justify-center pa-1">
+            <v-img :src="logo" alt="Logo ITCA" contain></v-img>
           </v-avatar>
         </template>
         <v-list-item-title class="font-weight-bold text-white text-subtitle-1">
@@ -61,13 +49,13 @@
   import { computed } from 'vue'
   import { RouterView, useRoute } from 'vue-router'
   import AppBar from './components/AppBar.vue'
+  import logo from '@/assets/EscudoItca.jpg'
 
   const route = useRoute()
   const esLogin = computed(() => route.path === '/login')
 </script>
 
 <style>
-
   /* Forzar que texto e iconos del menú sean siempre blancos */
   .custom-drawer .v-list-item,
   .custom-drawer .v-list-item-title,

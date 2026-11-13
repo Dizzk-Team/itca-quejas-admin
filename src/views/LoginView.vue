@@ -1,36 +1,79 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import logo from '@/assets/LogoItca.png'
 
-const modoRegistro = ref(false)
+const router = useRouter()
+
 const form = ref()
 const verPassword = ref(false)
-const verConfirmar = ref(false)
 
-const carnet = ref('')
-const nombre = ref('')
+const correo = ref('')
 const password = ref('')
-const confirmar = ref('')
+const cargando = ref(false)
+const mensajeError = ref('')
 
-const titulo = computed(() => (modoRegistro.value ? 'Crear cuenta' : 'Iniciar sesión'))
+const requerido = (v: string) =>
+  !!v?.trim() || 'Este campo es obligatorio'
 
-const requerido = (v: string) => !!v?.trim() || 'Este campo es obligatorio'
-const reglasConfirmar = [
-  requerido,
-  (v: string) => v === password.value || 'Las contraseñas no coinciden',
-]
+const enviar = async () => {
+  mensajeError.value = ''
+  cargando.value = true
 
-function cambiarModo() {
-  modoRegistro.value = !modoRegistro.value
-  form.value?.resetValidation()
-}
+  try {
+    const respuesta = await fetch(
+      'https://itca-quejas-api.onrender.com/api/login',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          correo_institucional: correo.value.trim(),
+          password: password.value
+        })
+      }
+    )
 
-async function enviar() {
-  const { valid } = await form.value.validate()
-  if (!valid) return
-  // Pendiente: la lógica de login / registro se agregará después
+    const resultado = await respuesta.json()
+
+    if (!respuesta.ok) {
+      // Si las credenciales son incorrectas, limpiamos la contraseña por seguridad
+      password.value = ''
+      throw new Error(resultado.message || 'Error al iniciar sesión')
+    }
+
+    if (!resultado.access_token) {
+      password.value = ''
+      throw new Error('La API no devolvió el token de acceso')
+    }
+
+    // Guardar los datos de sesión
+    localStorage.setItem('token_sesion', resultado.access_token)
+    localStorage.setItem('creador_id', resultado.creador_id)
+    localStorage.setItem('tipo_token', resultado.token_type)
+    localStorage.setItem('nombre_usuario', resultado.creador?.nombre_completo || resultado.nombre || correo.value.split('@')[0])
+    localStorage.setItem('correo_usuario', resultado.creador?.correo_institucional || correo.value)
+    localStorage.setItem('rol_usuario', resultado.creador?.rol || 'Administrador')
+
+    // Limpiar los campos al iniciar sesión correctamente
+    correo.value = ''
+    password.value = ''
+
+    // Redirigir al inicio
+    await router.push({ name: 'inicio' })
+
+  } catch (error: any) {
+    console.error('Error en el inicio de sesión:', error)
+    mensajeError.value = error.message || 'No se pudo conectar con el servidor'
+  } finally {
+    cargando.value = false
+  }
 }
 </script>
+
+
 
 <template>
   <v-app>
@@ -39,90 +82,90 @@ async function enviar() {
         <v-row align="center" justify="center">
           <v-col cols="12" sm="10" md="8" lg="5" xl="4">
             <v-card class="tarjeta" elevation="10" rounded="xl">
-              <!-- Franja superior roja con detalle dorado -->
+
+              <!-- Cabecera -->
               <div class="cabecera">
                 <div class="logo">
                   <img :src="logo" alt="Logo ITCA FEPADE" />
                 </div>
+
                 <h1 class="marca">ITCA FEPADE</h1>
                 <p class="subtitulo">administrador de quejas</p>
               </div>
+
               <div class="linea-dorada" />
 
-              <v-card-text class="px-8 pt-8 pb-2">
-                <h2 class="titulo mb-6">{{ titulo }}</h2>
+              <v-card-text class="px-8 pt-8 pb-6">
+                <h2 class="titulo mb-6">Iniciar sesión</h2>
+
+                <!-- Mensaje de error -->
+                <v-alert
+                  v-if="mensajeError"
+                  type="error"
+                  variant="tonal"
+                  class="mb-4"
+                  density="compact"
+                >
+                  {{ mensajeError }}
+                </v-alert>
 
                 <v-form ref="form" @submit.prevent="enviar">
+
+                  <!-- Correo institucional -->
                   <v-text-field
-                    v-model="carnet"
-                    label="Carnet de administrador"
-                    prepend-inner-icon="mdi-card-account-details-outline"
+                    v-model="correo"
+                    label="Correo institucional"
+                    prepend-inner-icon="mdi-email-outline"
                     variant="outlined"
                     color="primary"
                     :rules="[requerido]"
                     class="mb-2"
                   />
 
-                  <v-text-field
-                    v-model="nombre"
-                    label="Nombre"
-                    prepend-inner-icon="mdi-account-outline"
-                    variant="outlined"
-                    color="primary"
-                    :rules="[requerido]"
-                    class="mb-2"
-                  />
-
+                  <!-- Contraseña -->
                   <v-text-field
                     v-model="password"
                     label="Contraseña"
                     prepend-inner-icon="mdi-lock-outline"
-                    :append-inner-icon="verPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                    :append-inner-icon="
+                      verPassword ? 'mdi-eye-off' : 'mdi-eye'
+                    "
                     :type="verPassword ? 'text' : 'password'"
                     variant="outlined"
                     color="primary"
                     :rules="[requerido]"
-                    class="mb-2"
+                    class="mb-4"
                     @click:append-inner="verPassword = !verPassword"
                   />
 
-                  <v-text-field
-                    v-if="modoRegistro"
-                    v-model="confirmar"
-                    label="Confirmar contraseña"
-                    prepend-inner-icon="mdi-lock-check-outline"
-                    :append-inner-icon="verConfirmar ? 'mdi-eye-off' : 'mdi-eye'"
-                    :type="verConfirmar ? 'text' : 'password'"
-                    variant="outlined"
+                  <!-- Botón ingresar -->
+                  <v-btn
+                    type="submit"
+                    block
+                    size="large"
                     color="primary"
-                    :rules="reglasConfirmar"
-                    class="mb-2"
-                    @click:append-inner="verConfirmar = !verConfirmar"
-                  />
-
-                  <v-btn type="submit" block size="large" color="primary" class="boton mt-2">
-                    {{ modoRegistro ? 'Registrarme' : 'Ingresar' }}
+                    class="boton mt-2"
+                    :loading="cargando"
+                  >
+                    Ingresar
                   </v-btn>
+
                 </v-form>
               </v-card-text>
-
-              <v-card-actions class="justify-center pb-6">
-                <span class="texto-cambio">
-                  {{ modoRegistro ? '¿Ya tienes cuenta?' : '¿No estás registrado?' }}
-                </span>
-                <v-btn variant="text" color="dorado" class="enlace" @click="cambiarModo">
-                  {{ modoRegistro ? 'Inicia sesión' : 'Regístrate' }}
-                </v-btn>
-              </v-card-actions>
             </v-card>
 
-            <p class="pie">© ITCA FEPADE · Todos los derechos reservados</p>
+            <!-- Pie de página -->
+            <p class="pie">
+              © ITCA FEPADE · Todos los derechos reservados
+            </p>
+
           </v-col>
         </v-row>
       </v-container>
     </v-main>
   </v-app>
 </template>
+
 
 <style scoped>
 /* Paleta: blanco, rojo y dorado */
@@ -162,7 +205,7 @@ async function enviar() {
 .logo img {
   max-width: 150%;
   max-height: 150%;
-  object-fit: contain; /* muestra el logo completo, sin recortarlo */
+  object-fit: contain;
 }
 
 .marca {
@@ -193,17 +236,6 @@ async function enviar() {
   font-weight: 700;
   letter-spacing: 1px;
   border-bottom: 3px solid var(--dorado);
-}
-
-.texto-cambio {
-  color: #555;
-  font-size: 0.9rem;
-}
-
-.enlace {
-  color: var(--dorado) !important;
-  font-weight: 700;
-  text-transform: none;
 }
 
 .pie {
