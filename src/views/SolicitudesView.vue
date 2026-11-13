@@ -1,19 +1,15 @@
 <template>
     <div class="layout-container">
         <!-- Encabezado -->
-        <div class="d-flex justify-space-between align-center mb-4">
-            <div>
-                <h1 class="text-h5 font-weight-bold text-slate-800">Gestión de Solicitudes</h1>
-                <p class="text-caption text-grey-darken-1">
-                    Supervisa, organiza y asigna los reportes de mantenimiento del campus.
-                </p>
-            </div>
-
+        <div class="mb-4">
+            <h1 class="text-h5 font-weight-bold text-slate-800">Gestión de Solicitudes</h1>
+            <p class="text-caption text-grey-darken-1">
+                Supervisa, organiza y asigna los reportes de mantenimiento del campus.
+            </p>
         </div>
 
         <!-- Tarjetas KPI Informativas -->
         <div class="kpi-summary-grid mb-6">
-            <!-- Tarjeta 1: Total Solicitudes -->
             <v-card class="summary-card pa-4" variant="outlined">
                 <div class="d-flex justify-space-between align-start mb-2">
                     <span class="card-title-text">Solicitudes totales</span>
@@ -25,7 +21,6 @@
                 <div class="card-sub-text">Registradas este mes</div>
             </v-card>
 
-            <!-- Tarjeta 2: Pendientes -->
             <v-card class="summary-card pa-4" variant="outlined">
                 <div class="d-flex justify-space-between align-start mb-2">
                     <span class="card-title-text">Pendientes</span>
@@ -37,7 +32,6 @@
                 <div class="card-sub-text">Por asignar a un técnico</div>
             </v-card>
 
-            <!-- Tarjeta 3: En proceso -->
             <v-card class="summary-card pa-4" variant="outlined">
                 <div class="d-flex justify-space-between align-start mb-2">
                     <span class="card-title-text">En proceso</span>
@@ -49,7 +43,6 @@
                 <div class="card-sub-text">Con atención en curso</div>
             </v-card>
 
-            <!-- Tarjeta 4: Resueltas -->
             <v-card class="summary-card pa-4" variant="outlined">
                 <div class="d-flex justify-space-between align-start mb-2">
                     <span class="card-title-text">Resueltas</span>
@@ -73,7 +66,7 @@
                 <option value="">Todos los estados</option>
                 <option value="Pendiente">Pendiente</option>
                 <option value="En proceso">En proceso</option>
-                <option value="Resuelta">Resuelta</option>
+                <option value="Resuelto">Resuelto</option>
             </select>
 
             <select v-model="filtroCategoria" class="custom-select">
@@ -86,16 +79,11 @@
 
         <!-- Tabla -->
         <v-card class="pa-5 card-table" variant="outlined">
-            <div class="d-flex justify-space-between align-center mb-4">
-                <div class="d-flex align-center gap-2">
-                    <h2 class="text-subtitle-1 font-weight-bold text-slate-800">Reportes de mantenimiento</h2>
-                    <v-chip size="x-small" color="primary" class="font-weight-bold">
-                        {{ solicitudesFiltradas.length }}
-                    </v-chip>
-                </div>
-                <v-btn variant="outlined" size="small" prepend-icon="mdi-download" class="text-none">
-                    Exportar
-                </v-btn>
+            <div class="d-flex align-center gap-2 mb-4">
+                <h2 class="text-subtitle-1 font-weight-bold text-slate-800">Reportes de mantenimiento</h2>
+                <v-chip size="x-small" color="primary" class="font-weight-bold">
+                    {{ solicitudesFiltradas.length }}
+                </v-chip>
             </div>
 
             <!-- Estado Carga -->
@@ -130,7 +118,7 @@
                                 No se encontraron registros que coincidan con la búsqueda.
                             </td>
                         </tr>
-                        <tr v-for="item in solicitudesFiltradas" :key="item._id || item.id || item.creador_id">
+                        <tr v-for="(item, index) in solicitudesFiltradas" :key="item._id || item.id || index">
                             <td class="font-weight-bold text-primary text-mono">
                                 {{ acortarId(item.creador_id) }}
                             </td>
@@ -145,35 +133,30 @@
                                     ● {{ item.estado }}
                                 </span>
                             </td>
-                            <!-- Columna EVIDENCIA en la tabla -->
                             <td class="text-center">
-                                <template v-if="obtenerUrlImagen(item.evidencias_url)">
-                                    <v-img :src="obtenerUrlImagen(item.evidencias_url)!" alt="Evidencia" width="42"
-                                        height="42" cover class="evidence-thumb mx-auto rounded-lg"
-                                        @click="verImagen(obtenerUrlImagen(item.evidencias_url)!)">
-                                        <template #placeholder>
-                                            <div
-                                                class="d-flex align-center justify-center fill-height bg-grey-lighten-3">
-                                                <v-progress-circular indeterminate size="14"
-                                                    color="primary"></v-progress-circular>
-                                            </div>
-                                        </template>
-                                        <template #error>
-                                            <!-- Permite hacer clic aunque falle la miniatura para abrir la URL original -->
-                                            <div class="d-flex align-center justify-center fill-height bg-grey-lighten-3 cursor-pointer"
-                                                title="Abrir URL de evidencia"
-                                                @click="verImagen(obtenerUrlImagen(item.evidencias_url)!)">
-                                                <v-icon icon="mdi-image-broken-variant" color="warning"
-                                                    size="18"></v-icon>
-                                            </div>
-                                        </template>
-                                    </v-img>
-                                </template>
+                                <v-img v-if="obtenerUrlImagen(item.evidencias_url)"
+                                    :src="obtenerUrlImagen(item.evidencias_url)!" alt="Evidencia" width="42" height="42"
+                                    cover class="evidence-thumb mx-auto rounded-lg"
+                                    @click="verImagen(obtenerUrlImagen(item.evidencias_url)!)">
+                                    <template #placeholder>
+                                        <div class="d-flex align-center justify-center fill-height bg-grey-lighten-3">
+                                            <v-progress-circular indeterminate size="14"
+                                                color="primary"></v-progress-circular>
+                                        </div>
+                                    </template>
+                                    <template #error>
+                                        <div class="d-flex align-center justify-center fill-height bg-grey-lighten-3"
+                                            title="Abrir URL de evidencia">
+                                            <v-icon icon="mdi-image-broken-variant" color="warning" size="18"></v-icon>
+                                        </div>
+                                    </template>
+                                </v-img>
                                 <span v-else class="text-caption text-grey-lighten-1">-</span>
                             </td>
                             <td class="text-center">
-                                <v-btn variant="outlined" size="x-small" color="slate-700" class="text-none">
-                                    Asignar
+                                <v-btn variant="outlined" size="x-small" color="#334155" class="text-none"
+                                    @click="abrirModalGestion(item)">
+                                    Gestionar
                                 </v-btn>
                             </td>
                         </tr>
@@ -181,6 +164,7 @@
                 </table>
             </div>
         </v-card>
+
         <!-- Modal para previsualizar o inspeccionar la URL -->
         <v-dialog v-model="dialogImagen" max-width="700">
             <v-card class="pa-4 rounded-lg">
@@ -201,12 +185,78 @@
                 </div>
             </v-card>
         </v-dialog>
+
+        <!-- Modal para gestionar el estado de la solicitud -->
+        <v-dialog v-model="dialogGestion" max-width="520" :persistent="guardandoEstado">
+            <v-card v-if="solicitudSeleccionada" class="pa-5 rounded-lg bg-white">
+                <div class="d-flex justify-space-between align-center mb-4">
+                    <div>
+                        <h3 class="text-subtitle-1 font-weight-bold text-slate-800">Gestionar solicitud</h3>
+                        <span class="text-caption text-grey-darken-1">Actualiza el estado de atención del reporte</span>
+                    </div>
+                    <v-btn icon="mdi-close" variant="text" size="small" @click="dialogGestion = false"></v-btn>
+                </div>
+
+                <v-alert v-if="errorGuardado" type="error" variant="tonal" density="compact" class="mb-4">
+                    {{ errorGuardado }}
+                </v-alert>
+
+                <!-- Campos de solo lectura -->
+                <div class="detail-grid mb-4">
+                    <div class="detail-box">
+                        <span class="detail-label">FECHA</span>
+                        <span class="detail-value">{{ formatearFecha(solicitudSeleccionada.created_at) }}</span>
+                    </div>
+
+                    <div class="detail-box">
+                        <span class="detail-label">CATEGORÍA</span>
+                        <div>
+                            <span class="category-tag">{{ solicitudSeleccionada.categoria }}</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-box detail-full">
+                        <span class="detail-label">UBICACIÓN EXACTA</span>
+                        <span class="detail-value">{{ solicitudSeleccionada.ubicacion_exacta }}</span>
+                    </div>
+
+                    <div class="detail-box detail-full">
+                        <span class="detail-label">DESCRIPCIÓN</span>
+                        <p class="detail-value mb-0">{{ solicitudSeleccionada.descripcion }}</p>
+                    </div>
+                </div>
+
+                <!-- Único campo editable: ESTADO -->
+                <div class="mb-5">
+                    <label class="detail-label d-block mb-1" for="select-estado">ESTADO DE LA QUEJA</label>
+                    <select id="select-estado" v-model="nuevoEstado" class="custom-select w-100">
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="En proceso">En proceso</option>
+                        <option value="Resuelto">Resuelto</option>
+                    </select>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="d-flex justify-end gap-2">
+                    <v-btn variant="text" color="#64748b" class="text-none" :disabled="guardandoEstado"
+                        @click="dialogGestion = false">
+                        Cancelar
+                    </v-btn>
+                    <v-btn color="primary" elevation="0" class="text-none px-4" :loading="guardandoEstado"
+                        :disabled="nuevoEstado === normalizarEstado(solicitudSeleccionada.estado)"
+                        @click="guardarCambioEstado">
+                        Guardar estado
+                    </v-btn>
+                </div>
+            </v-card>
+        </v-dialog>
+
     </div>
 </template>
 
 <script setup lang="ts">
     import { ref, computed, onMounted } from 'vue'
-    import { useStore } from '../store'
+    import { useStore, type Solicitud } from '../store'
 
     const store = useStore()
 
@@ -218,7 +268,6 @@
     const cargando = computed(() => store.state.cargando)
     const error = computed(() => store.state.error)
 
-    // Variables reactivas para el modal de imágenes
     const dialogImagen = ref(false)
     const imagenSeleccionada = ref('')
 
@@ -227,15 +276,13 @@
         dialogImagen.value = true
     }
 
-    // Extrae la URL válida ya sea si la API envía un Array o un String
-    const obtenerUrlImagen = (evidencia: any): string | null => {
+    const obtenerUrlImagen = (evidencia: unknown): string | null => {
         if (!evidencia) return null
         if (Array.isArray(evidencia) && evidencia.length > 0) return evidencia[0]
         if (typeof evidencia === 'string' && evidencia.trim() !== '') return evidencia
         return null
     }
 
-    // Conteos dinámicos calculados desde el array de solicitudes de Vuex
     const totalSolicitudes = computed(() => solicitudes.value.length)
 
     const totalPendientes = computed(() =>
@@ -247,60 +294,114 @@
     )
 
     const totalResueltas = computed(() =>
-        solicitudes.value.filter(s =>
-            s.estado?.toLowerCase() === 'resuelta' || s.estado?.toLowerCase() === 'resueltas'
-        ).length
+        solicitudes.value.filter(s => {
+            const est = s.estado?.toLowerCase()
+            return est === 'resuelto' || est === 'resuelta' || est === 'resueltas'
+        }).length
     )
 
     onMounted(() => {
         store.dispatch('fetchSolicitudes')
     })
 
-    // Filtrado reactivo por texto (creador, ubicación, descripción), estado y categoría
     const solicitudesFiltradas = computed(() => {
-        return solicitudes.value.filter(s => {
-            const texto = filtroTexto.value.toLowerCase()
-            const coincideTexto =
-                (s.creador_id && s.creador_id.toLowerCase().includes(texto)) ||
-                (s.ubicacion_exacta && s.ubicacion_exacta.toLowerCase().includes(texto)) ||
-                (s.descripcion && s.descripcion.toLowerCase().includes(texto))
+        const texto = filtroTexto.value.toLowerCase()
+        const estadoFiltro = filtroEstado.value.toLowerCase()
+        const categoriaFiltro = filtroCategoria.value.toLowerCase()
 
-            const coincideEstado = !filtroEstado.value || s.estado === filtroEstado.value
-            const coincideCategoria = !filtroCategoria.value || s.categoria === filtroCategoria.value
+        return solicitudes.value.filter(s => {
+            const coincideTexto =
+                !texto ||
+                s.creador_id?.toLowerCase().includes(texto) ||
+                s.ubicacion_exacta?.toLowerCase().includes(texto) ||
+                s.descripcion?.toLowerCase().includes(texto)
+
+            const coincideEstado = !estadoFiltro || s.estado?.toLowerCase() === estadoFiltro
+            const coincideCategoria = !categoriaFiltro || s.categoria?.toLowerCase() === categoriaFiltro
 
             return coincideTexto && coincideEstado && coincideCategoria
         })
     })
 
-    // Formatea timestamps ISO tipo "2026-11-05T04:12:39.025000Z" a "05 nov 2026, 04:12 h"
     const formatearFecha = (fechaStr: string) => {
         if (!fechaStr) return '-'
         const fecha = new Date(fechaStr)
-        return fecha.toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-        }) + ` ${fecha.getHours().toString().padStart(2, '0')}:${fecha.getMinutes().toString().padStart(2, '0')} h`
+        return (
+            fecha.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            }) +
+            ` ${fecha.getHours().toString().padStart(2, '0')}:${fecha.getMinutes().toString().padStart(2, '0')} h`
+        )
     }
 
-    // Muestra los primeros 8 caracteres del creador_id para evitar sobrecargar la tabla
     const acortarId = (id: string) => {
         if (!id) return '-'
         return id.length > 10 ? `${id.substring(0, 8)}...` : id
     }
 
     const claseEstado = (estado: string) => {
-        switch (estado) {
-            case 'Pendiente':
+        switch (estado?.toLowerCase()) {
+            case 'pendiente':
                 return 'badge-pendiente'
-            case 'En proceso':
+            case 'en proceso':
                 return 'badge-proceso'
-            case 'Resuelta':
+            case 'resuelto':
+            case 'resuelta':
+            case 'resueltas':
                 return 'badge-resuelta'
             default:
                 return ''
         }
     }
+
+    const dialogGestion = ref(false)
+    const solicitudSeleccionada = ref<Solicitud | null>(null)
+    const nuevoEstado = ref('')
+    const guardandoEstado = ref(false)
+    const errorGuardado = ref<string | null>(null)
+
+    const normalizarEstado = (estado: string) => {
+        const est = estado?.toLowerCase()
+        if (est === 'pendiente') return 'Pendiente'
+        if (est === 'en proceso') return 'En proceso'
+        if (est === 'resuelto' || est === 'resuelta' || est === 'resueltas') return 'Resuelta'
+        return estado
+    }
+
+    const abrirModalGestion = (item: Solicitud) => {
+        solicitudSeleccionada.value = item
+        nuevoEstado.value = normalizarEstado(item.estado)
+        errorGuardado.value = null
+        dialogGestion.value = true
+    }
+
+    const guardarCambioEstado = async () => {
+        if (!solicitudSeleccionada.value) return
+
+        const id = solicitudSeleccionada.value._id || solicitudSeleccionada.value.id
+        if (!id) {
+            errorGuardado.value = 'El registro no cuenta con un identificador válido.'
+            return
+        }
+
+        guardandoEstado.value = true
+        errorGuardado.value = null
+
+        try {
+            await store.dispatch('actualizarEstadoSolicitud', {
+                id,
+                estado: nuevoEstado.value,
+            })
+            dialogGestion.value = false
+        } catch (err: any) {
+            errorGuardado.value = err.message || 'Ocurrió un error al actualizar el estado.'
+        } finally {
+            guardandoEstado.value = false
+        }
+    }
+
 </script>
 
 <style scoped>
@@ -451,7 +552,6 @@
         border-radius: 6px;
     }
 
-    /* Rejilla responsiva de 4 columnas */
     .kpi-summary-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -483,7 +583,6 @@
         color: #94a3b8 !important;
     }
 
-    /* Adaptación para pantallas pequeñas */
     @media (max-width: 960px) {
         .kpi-summary-grid {
             grid-template-columns: repeat(2, 1fr);
@@ -494,5 +593,38 @@
         .kpi-summary-grid {
             grid-template-columns: 1fr;
         }
+    }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .detail-box {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.65rem 0.85rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .detail-full {
+        grid-column: 1 / -1;
+    }
+
+    .detail-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #64748b !important;
+        letter-spacing: 0.03em;
+    }
+
+    .detail-value {
+        font-size: 0.85rem;
+        color: #0f172a !important;
+        line-height: 1.4;
     }
 </style>
