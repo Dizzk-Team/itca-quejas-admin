@@ -1,27 +1,101 @@
 <script setup lang="ts">
-// Datos de ejemplo (se reemplazarán por la API más adelante)
-const resumen = [
-  { titulo: 'Total del mes', valor: 57, icono: 'mdi-inbox-full-outline', clase: 'total' },
-  { titulo: 'Pendientes', valor: 12, icono: 'mdi-clock-alert-outline', clase: 'rojo' },
-  { titulo: 'En proceso', valor: 7, icono: 'mdi-progress-wrench', clase: 'dorado' },
-  { titulo: 'Resueltas', valor: 38, icono: 'mdi-check-circle-outline', clase: 'verde' },
-]
+import { ref, onMounted } from 'vue'
 
-const urgentes = [
-  { codigo: 'Q-0032', asunto: 'Falla eléctrica en edificio B', dias: 9, prioridad: 'Alta' },
-  { codigo: 'Q-0035', asunto: 'Fuga de agua en servicios sanitarios', dias: 6, prioridad: 'Alta' },
-  { codigo: 'Q-0036', asunto: 'Sin respuesta sobre constancia solicitada', dias: 5, prioridad: 'Media' },
-]
+const resumen = ref([
+  { titulo: 'Total del mes', valor: 0, icono: 'mdi-inbox-full-outline', clase: 'total' },
+  { titulo: 'Pendientes', valor: 0, icono: 'mdi-clock-alert-outline', clase: 'rojo' },
+  { titulo: 'En proceso', valor: 0, icono: 'mdi-progress-wrench', clase: 'dorado' },
+  { titulo: 'Resueltas', valor: 0, icono: 'mdi-check-circle-outline', clase: 'verde' },
+])
 
-const recientes = [
-  { codigo: 'Q-0041', asunto: 'Falla en el aula de laboratorio', fecha: '29/10/2026', estado: 'Pendiente' },
-  { codigo: 'Q-0040', asunto: 'Problema con el acceso a la plataforma', fecha: '28/10/2026', estado: 'En proceso' },
-  { codigo: 'Q-0039', asunto: 'Solicitud de revisión de horario', fecha: '27/10/2026', estado: 'Resuelta' },
-  { codigo: 'Q-0038', asunto: 'Mantenimiento de servicios sanitarios', fecha: '26/10/2026', estado: 'Resuelta' },
-]
+const urgentes = ref<any[]>([])
+const recientes = ref<any[]>([])
+const cargando = ref(false)
+
+// Función para calcular cuántos días han pasado desde que se creó el reporte
+const calcularDiasTranscurridos = (fechaIso: string) => {
+  if (!fechaIso) return 0
+  const fechaReporte = new Date(fechaIso)
+  const fechaActual = new Date()
+  const diferenciaMs = fechaActual.getTime() - fechaReporte.getTime()
+  return Math.floor(diferenciaMs / (1000 * 60 * 60 * 24))
+}
+
+// Función para formatear fechas a DD/MM/YYYY
+const formatearFecha = (fechaIso: string) => {
+  if (!fechaIso) return ''
+  const fecha = new Date(fechaIso)
+  return fecha.toLocaleDateString('es-SV', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+}
+
+const obtenerDatosInicio = async () => {
+  cargando.value = true
+  try {
+    const respuesta = await fetch('https://itca-quejas-api.onrender.com/api/reportes', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+
+    if (!respuesta.ok) {
+      throw new Error('Error al obtener los datos del servidor')
+    }
+
+    const resultado = await respuesta.json()
+    const reportes: any[] = resultado.data ?? []
+
+    // 1. Conteo de estados para el resumen
+    const total = reportes.length
+    const pendientes = reportes.filter(r => r.estado === 'Pendiente').length
+    const enProceso = reportes.filter(r => r.estado === 'En proceso' || r.estado === 'En Proceso').length
+    const resueltas = reportes.filter(r => r.estado === 'Resuelta' || r.estado === 'Resuelto').length
+
+    resumen.value = [
+      { titulo: 'Total del mes', valor: total, icono: 'mdi-inbox-full-outline', clase: 'total' },
+      { titulo: 'Pendientes', valor: pendientes, icono: 'mdi-clock-alert-outline', clase: 'rojo' },
+      { titulo: 'En proceso', valor: enProceso, icono: 'mdi-progress-wrench', clase: 'dorado' },
+      { titulo: 'Resueltas', valor: resueltas, icono: 'mdi-check-circle-outline', clase: 'verde' },
+    ]
+
+    // 2. Mapear quejas que requieren atención (No resueltas, mostrando su prioridad real)
+    urgentes.value = reportes
+      .filter(r => r.estado !== 'Resuelta' && r.estado !== 'Resuelto')
+      .map(r => ({
+        codigo: r.id ? `Q-${r.id.substring(0, 4).toUpperCase()}` : 'Q-0000',
+        asunto: r.descripcion || r.ubicacion_exacta || 'Sin asunto',
+        dias: calcularDiasTranscurridos(r.fechas?.reporte || r.created_at),
+        prioridad: r.prioridad || 'Baja'
+      }))
+      .slice(0, 3)
+
+    // 3. Mapear últimas quejas recibidas para la tabla
+    recientes.value = reportes
+      .slice(0, 5)
+      .map(r => ({
+        codigo: r.id ? `Q-${r.id.substring(0, 4).toUpperCase()}` : 'Q-0000',
+        asunto: r.descripcion || r.ubicacion_exacta || 'Sin asunto',
+        fecha: formatearFecha(r.fechas?.reporte || r.created_at),
+        estado: r.estado || 'Pendiente'
+      }))
+
+  } catch (error) {
+    console.error('Hubo un problema al cargar los reportes:', error)
+  } finally {
+    cargando.value = false
+  }
+}
+
+onMounted(() => {
+  obtenerDatosInicio()
+})
 
 const colorEstado = (e: string) =>
-  e === 'Pendiente' ? 'red-darken-1' : e === 'En proceso' ? 'amber-darken-2' : 'green-darken-1'
+  e === 'Pendiente' ? 'red-darken-1' : (e === 'En proceso' || e === 'En Proceso') ? 'amber-darken-2' : 'green-darken-1'
 </script>
 
 <template>
@@ -34,7 +108,13 @@ const colorEstado = (e: string) =>
           <h1 class="titulo-principal">ITCA FEPADE</h1>
           <p class="descripcion">Administrador de quejas y solicitudes</p>
         </div>
-        <v-icon class="icono-grande" icon="mdi-shield-account-outline" />
+        <div class="contenedor-logo">
+          <img 
+            src="@/assets/EscudoItca.jpg" 
+            alt="Logo ITCA FEPADE" 
+            class="logo-itca"
+          />
+        </div>
       </div>
       <div class="linea-dorada" />
     </v-card>
@@ -57,7 +137,7 @@ const colorEstado = (e: string) =>
       </v-col>
     </v-row>
 
-    <!-- Quejas que requieren atención -->
+    <!-- Quejas que requieren atención (Sin el botón) -->
     <h2 class="seccion">Requieren atención</h2>
     <v-row>
       <v-col v-for="u in urgentes" :key="u.codigo" cols="12" md="4">
@@ -66,7 +146,7 @@ const colorEstado = (e: string) =>
             <div class="d-flex align-center justify-space-between mb-2">
               <span class="urgente-codigo">{{ u.codigo }}</span>
               <v-chip
-                :color="u.prioridad === 'Alta' ? 'red-darken-1' : 'amber-darken-2'"
+                :color="u.prioridad === 'Alta' || u.prioridad === 'Urgente' ? 'red-darken-1' : 'amber-darken-2'"
                 size="small"
                 variant="flat"
               >
@@ -79,11 +159,6 @@ const colorEstado = (e: string) =>
               Sin atender hace {{ u.dias }} días
             </div>
           </v-card-text>
-          <v-card-actions class="px-4 pb-4">
-            <v-btn class="boton-abrir" variant="flat" size="small" prepend-icon="mdi-open-in-new">
-              Abrir queja
-            </v-btn>
-          </v-card-actions>
         </v-card>
       </v-col>
     </v-row>
@@ -157,10 +232,20 @@ const colorEstado = (e: string) =>
   opacity: 0.9;
 }
 
-.icono-grande {
-  font-size: 84px !important;
-  color: var(--dorado);
-  opacity: 0.9;
+.contenedor-logo {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.logo-itca {
+  max-height: 65px;
+  width: auto;
+  object-fit: contain;
 }
 
 .linea-dorada {
@@ -253,13 +338,6 @@ const colorEstado = (e: string) =>
 .urgente-dias {
   color: #777;
   font-size: 0.85rem;
-}
-
-.boton-abrir {
-  background: var(--rojo) !important;
-  color: #ffffff !important;
-  font-weight: 600;
-  text-transform: none;
 }
 
 /* Tabla */
