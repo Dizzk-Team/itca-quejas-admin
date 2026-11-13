@@ -6,23 +6,30 @@
                 <h1 class="page-title">Métricas de mantenimiento</h1>
                 <p class="page-subtitle">Analiza las incidencias del campus y el desempeño de su atención.</p>
             </div>
-            <v-btn color="primary" prepend-icon="mdi-download" class="text-none rounded-lg px-4 print-hide"
-                elevation="0" :loading="exportando" @click="exportarInforme">
-                Exportar informe
-            </v-btn>
+            <div class="d-flex flex-wrap ga-2">
+                <v-btn color="primary" variant="tonal" prepend-icon="mdi-refresh"
+                    class="text-none rounded-lg px-4 print-hide" elevation="0" :loading="cargando"
+                    :disabled="cargando" @click="recargarMetricas">
+                    Actualizar datos
+                </v-btn>
+                <v-btn color="primary" prepend-icon="mdi-download" class="text-none rounded-lg px-4 print-hide"
+                    elevation="0" :loading="exportando" @click="exportarInforme">
+                    Exportar informe
+                </v-btn>
+            </div>
         </div>
 
         <!-- Estado de Carga / Error -->
-        <div v-if="cargando" class="text-center py-8">
+        <div v-if="cargando && !solicitudes.length" class="text-center py-8">
             <v-progress-circular indeterminate color="primary"></v-progress-circular>
             <p class="text-caption text-grey-darken-1 mt-2">Cargando métricas desde la API...</p>
         </div>
 
-        <v-alert v-else-if="error" type="error" variant="tonal" class="mb-6">
+        <v-alert v-if="error" type="error" variant="tonal" class="mb-6">
             {{ error }}
         </v-alert>
 
-        <template v-else>
+        <template v-if="!cargando || solicitudes.length">
             <!-- Tarjeta KPI: Reportes Activos -->
             <div class="kpi-grid mb-6">
                 <v-card class="kpi-card pa-4" variant="outlined">
@@ -72,7 +79,7 @@
                             <template v-else>
                                 <div v-for="item in fallasPorEdificio" :key="item.edificio" class="bar-group">
                                     <span class="bar-val">{{ item.total }}</span>
-                                    <div class="bar" :style="{ height: calcularAlturaBarra(item.total) }"
+                                    <div class="bar" :style="{ height: calcularAlturaBarra(item.total ?? 0) }"
                                         :title="`${item.edificio}: ${item.total} reportes`"></div>
                                     <span class="bar-label">{{ item.edificio }}</span>
                                 </div>
@@ -120,7 +127,7 @@
                     <v-icon icon="mdi-refresh" size="14"></v-icon>
                     <span>Última actualización: {{ fechaActualizacion }}</span>
                 </div>
-                <span>Tiempo promedio calculado sobre {{ totalResueltas }} reportes resueltos</span>
+                <span>Tiempo promedio calculado sobre {{ totalResueltos }} reportes resueltos</span>
             </div>
         </template>
     </div>
@@ -136,6 +143,14 @@
     const cargando = computed(() => store.state.cargando)
     const error = computed(() => store.state.error)
     const exportando = ref(false)
+    const fechaActualizacion = computed(() => {
+        const actualizadaEn = store.state.actualizadoEn
+        if (!actualizadaEn) return 'Pendiente'
+
+        const fecha = new Date(actualizadaEn)
+        return fecha.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }) +
+            `, ${fecha.getHours().toString().padStart(2, '0')}:${fecha.getMinutes().toString().padStart(2, '0')} h`
+    })
 
     const exportarInforme = () => {
         exportando.value = true
@@ -146,9 +161,13 @@
         }
     }
 
-    onMounted(() => {
+    const recargarMetricas = async () => {
+        await store.dispatch('fetchSolicitudes')
+    }
+
+    onMounted(async () => {
         if (!solicitudes.value.length) {
-            store.dispatch('fetchSolicitudes')
+            await recargarMetricas()
         }
     })
 
@@ -183,8 +202,8 @@
         })
 
         return Object.keys(mapaEdificios)
-            .map(edificio => ({ edificio, total: mapaEdificios[edificio] }))
-            .sort((a, b) => b.total - a.total)
+            .map(edificio => ({ edificio, total: mapaEdificios[edificio] ?? 0 }))
+            .sort((a, b) => (b.total ?? 0) - (a.total ?? 0))
     })
 
     const maxFallasEdificio = computed(() => {
@@ -213,7 +232,7 @@
         const total = totalSolicitudes.value || 1
 
         return Object.keys(mapaCategorias).map((nombre, i) => {
-            const cant = mapaCategorias[nombre]
+            const cant = mapaCategorias[nombre] ?? 0
             const porcentajeExacto = (cant / total) * 100
             return {
                 nombre,
@@ -238,11 +257,6 @@
         return `conic-gradient(${tramos.join(', ')})`
     })
 
-    const ahora = new Date()
-    const fechaActualizacion = ref(
-        ahora.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }) +
-        `, ${ahora.getHours().toString().padStart(2, '0')}:${ahora.getMinutes().toString().padStart(2, '0')} h`
-    )
 </script>
 
 <style scoped>

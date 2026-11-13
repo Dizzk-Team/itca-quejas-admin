@@ -108,13 +108,14 @@
                             <th>DESCRIPCIÓN</th>
                             <th>CATEGORÍA</th>
                             <th>ESTADO</th>
+                            <th>ENCARGADO</th>
                             <th class="text-center">EVIDENCIA</th>
                             <th class="text-center">ACCIÓN</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="solicitudesFiltradas.length === 0">
-                            <td colspan="8" class="text-center text-grey-darken-1 py-6">
+                            <td colspan="9" class="text-center text-grey-darken-1 py-6">
                                 No se encontraron registros que coincidan con la búsqueda.
                             </td>
                         </tr>
@@ -133,6 +134,7 @@
                                     ● {{ item.estado }}
                                 </span>
                             </td>
+                            <td>{{ nombreEncargado(item.asignado_a) }}</td>
                             <td class="text-center">
                                 <v-img v-if="obtenerUrlImagen(item.evidencias_url)"
                                     :src="obtenerUrlImagen(item.evidencias_url)!" alt="Evidencia" width="42" height="42"
@@ -201,6 +203,13 @@
                     {{ errorGuardado }}
                 </v-alert>
 
+                <v-alert v-if="errorEncargados" type="error" variant="tonal" density="compact" class="mb-4">
+                    {{ errorEncargados }}
+                    <v-btn variant="text" size="small" class="ml-2" @click="cargarEncargados">
+                        Reintentar
+                    </v-btn>
+                </v-alert>
+
                 <!-- Campos de solo lectura -->
                 <div class="detail-grid mb-4">
                     <div class="detail-box">
@@ -226,14 +235,31 @@
                     </div>
                 </div>
 
-                <!-- Único campo editable: ESTADO -->
-                <div class="mb-5">
+                <div class="mb-4">
                     <label class="detail-label d-block mb-1" for="select-estado">ESTADO DE LA QUEJA</label>
                     <select id="select-estado" v-model="nuevoEstado" class="custom-select w-100">
                         <option value="Pendiente">Pendiente</option>
                         <option value="En proceso">En proceso</option>
                         <option value="Resuelto">Resuelto</option>
                     </select>
+                </div>
+
+                <div class="mb-5">
+                    <label class="detail-label d-block mb-1" for="select-encargado">PERSONA ENCARGADA</label>
+                    <v-select
+                        id="select-encargado"
+                        v-model="nuevoEncargado"
+                        :items="opcionesEncargados"
+                        item-title="title"
+                        item-value="value"
+                        placeholder="Selecciona a quien atenderá el reporte"
+                        variant="outlined"
+                        density="comfortable"
+                        hide-details
+                        clearable
+                        :loading="cargandoEncargados"
+                        :disabled="cargandoEncargados || !!errorEncargados"
+                    ></v-select>
                 </div>
 
                 <!-- Botones de acción -->
@@ -243,9 +269,10 @@
                         Cancelar
                     </v-btn>
                     <v-btn color="primary" elevation="0" class="text-none px-4" :loading="guardandoEstado"
-                        :disabled="nuevoEstado === normalizarEstado(solicitudSeleccionada.estado)"
+                        :disabled="nuevoEstado === normalizarEstado(solicitudSeleccionada.estado)
+                            && nuevoEncargado === (solicitudSeleccionada.asignado_a || null)"
                         @click="guardarCambioEstado">
-                        Guardar estado
+                        Guardar cambios
                     </v-btn>
                 </div>
             </v-card>
@@ -256,7 +283,7 @@
 
 <script setup lang="ts">
     import { ref, computed, onMounted } from 'vue'
-    import { useStore, type Solicitud } from '../store'
+    import { useStore, type Encargado, type Solicitud } from '../store'
 
     const store = useStore()
 
@@ -270,6 +297,34 @@
 
     const dialogImagen = ref(false)
     const imagenSeleccionada = ref('')
+    const encargados = ref<Encargado[]>([])
+    const cargandoEncargados = ref(false)
+    const errorEncargados = ref<string | null>(null)
+    const nuevoEncargado = ref<string | null>(null)
+
+    const opcionesEncargados = computed(() =>
+        encargados.value.map(encargado => ({
+            title: `${encargado.nombre_completo} · ${encargado.rol === 'Soporte_Tecnico' ? 'Soporte técnico' : 'Administración'}`,
+            value: encargado.id,
+        })),
+    )
+
+    const cargarEncargados = async () => {
+        cargandoEncargados.value = true
+        errorEncargados.value = null
+        try {
+            encargados.value = await store.dispatch('fetchEncargados')
+        } catch (err: unknown) {
+            errorEncargados.value = err instanceof Error
+                ? err.message
+                : 'No se pudo cargar el personal encargado.'
+        } finally {
+            cargandoEncargados.value = false
+        }
+    }
+
+    const nombreEncargado = (id?: string | null) =>
+        encargados.value.find(encargado => encargado.id === id)?.nombre_completo || 'Sin asignar'
 
     const verImagen = (url: string) => {
         imagenSeleccionada.value = url
@@ -301,7 +356,8 @@
     )
 
     onMounted(() => {
-        store.dispatch('fetchSolicitudes')
+        void store.dispatch('fetchSolicitudes')
+        void cargarEncargados()
     })
 
     const solicitudesFiltradas = computed(() => {
@@ -366,15 +422,17 @@
         const est = estado?.toLowerCase()
         if (est === 'pendiente') return 'Pendiente'
         if (est === 'en proceso') return 'En proceso'
-        if (est === 'resuelto' || est === 'resuelta' || est === 'resueltas') return 'Resuelta'
+        if (est === 'resuelto' || est === 'resuelta' || est === 'resueltas') return 'Resuelto'
         return estado
     }
 
     const abrirModalGestion = (item: Solicitud) => {
         solicitudSeleccionada.value = item
         nuevoEstado.value = normalizarEstado(item.estado)
+        nuevoEncargado.value = item.asignado_a || null
         errorGuardado.value = null
         dialogGestion.value = true
+        if (!encargados.value.length) void cargarEncargados()
     }
 
     const guardarCambioEstado = async () => {
@@ -390,13 +448,16 @@
         errorGuardado.value = null
 
         try {
-            await store.dispatch('actualizarEstadoSolicitud', {
+            await store.dispatch('gestionarSolicitud', {
                 id,
                 estado: nuevoEstado.value,
+                asignado_a: nuevoEncargado.value,
             })
             dialogGestion.value = false
-        } catch (err: any) {
-            errorGuardado.value = err.message || 'Ocurrió un error al actualizar el estado.'
+        } catch (err: unknown) {
+            errorGuardado.value = err instanceof Error
+                ? err.message
+                : 'Ocurrió un error al actualizar la gestión.'
         } finally {
             guardandoEstado.value = false
         }

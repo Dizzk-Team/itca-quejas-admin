@@ -10,24 +10,47 @@ export interface Solicitud {
   descripcion: string
   categoria: string
   estado: string
+  asignado_a?: string | null
   evidencias_url?: string[]
+}
+
+export interface Encargado {
+  id: string
+  nombre_completo: string
+  rol: string
+  departamento_o_carrera: string
 }
 
 export interface State {
   solicitudes: Solicitud[]
   cargando: boolean
   error: string | null
+  actualizadoEn: string | null
 }
 
 export const key: InjectionKey<Store<State>> = Symbol()
 
 const API_URL = 'https://itca-quejas-api.onrender.com/api'
 
+const getSessionHeaders = () => {
+  const token = localStorage.getItem('token_sesion')
+  if (!token || token === 'undefined' || token === 'null') {
+    throw new Error('Tu sesión expiró. Inicia sesión nuevamente.')
+  }
+
+  return {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    Authorization: `${localStorage.getItem('tipo_token') || 'Bearer'} ${token}`,
+  }
+}
+
 export const store = createStore<State>({
   state: {
     solicitudes: [],
     cargando: false,
     error: null,
+    actualizadoEn: null,
   },
   mutations: {
     SET_SOLICITUDES(state, payload: Solicitud[]) {
@@ -39,10 +62,17 @@ export const store = createStore<State>({
     SET_ERROR(state, payload: string | null) {
       state.error = payload
     },
-    UPDATE_SOLICITUD_ESTADO(state, payload: { id: string; estado: string }) {
+    SET_ACTUALIZADO_EN(state, payload: string) {
+      state.actualizadoEn = payload
+    },
+    UPDATE_SOLICITUD_GESTION(
+      state,
+      payload: { id: string; estado: string; asignado_a: string | null },
+    ) {
       const item = state.solicitudes.find(s => (s._id || s.id) === payload.id)
       if (item) {
         item.estado = payload.estado
+        item.asignado_a = payload.asignado_a
       }
     },
   },
@@ -62,75 +92,66 @@ export const store = createStore<State>({
           ? res
           : res.data || res.solicitudes || []
 
+        if (!Array.isArray(listaSolicitudes)) {
+          throw new Error('La API devolvió una lista de reportes inválida.')
+        }
+
         commit('SET_SOLICITUDES', listaSolicitudes)
-      } catch (err: any) {
-        commit('SET_ERROR', err.message || 'Error al conectar con la API')
-        commit('SET_SOLICITUDES', [])
+        commit('SET_ACTUALIZADO_EN', new Date().toISOString())
+        return true
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Error al conectar con la API'
+        commit('SET_ERROR', message)
+        return false
       } finally {
         commit('SET_CARGANDO', false)
       }
     },
 
-    async obtenerTokenTemporal() {
-      const response = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          correo_institucional: 'diego.huezo@itca.edu.sv',
-          password: 'password',
-        }),
+    async fetchEncargados() {
+      const response = await fetch(`${API_URL}/encargados`, {
+        headers: getSessionHeaders(),
       })
 
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: No se pudo autenticar en la API`)
+        throw new Error(`Error ${response.status}: No se pudo cargar el personal encargado`)
       }
 
-      const data = await response.json()
-      const token = data.access_token || data.token || data.data?.token
-
-      if (!token) {
-        throw new Error('La respuesta de /login no devolvió un token válido')
+      const result = await response.json()
+      if (!Array.isArray(result.data)) {
+        throw new Error('La API devolvió una lista de encargados inválida.')
       }
 
-      localStorage.setItem('token', token)
-      return token
+      return result.data as Encargado[]
     },
 
-    async actualizarEstadoSolicitud({ commit, dispatch }, payload: { id: string; estado: string }) {
-      let token = localStorage.getItem('token')
-
-      if (!token) {
-        token = await dispatch('obtenerTokenTemporal')
-      }
-
-      const enviarPeticion = (authToken: string) =>
-        fetch(`${API_URL}/reportes/${payload.id}/estado`, {
+    async gestionarSolicitud(
+      { commit },
+      payload: { id: string; estado: string; asignado_a: string | null },
+    ) {
+      const response = await fetch(
+        `${API_URL}/reportes/${encodeURIComponent(payload.id)}/estado`,
+        {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            Authorization: `Bearer ${authToken}`,
-          },
-          body: JSON.stringify({ estado: payload.estado }),
-        })
-
-      let response = await enviarPeticion(token!)
-
-      // Si el token guardado expiró, renueva credenciales y reintenta una vez
-      if (response.status === 401) {
-        localStorage.removeItem('token')
-        token = await dispatch('obtenerTokenTemporal')
-        response = await enviarPeticion(token!)
-      }
+          headers: getSessionHeaders(),
+          body: JSON.stringify({
+            estado: payload.estado,
+            asignado_a: payload.asignado_a,
+          }),
+        },
+      )
 
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: No se pudo actualizar el estado`)
+        const result = await response.json().catch(() => null)
+        const validationMessage = result?.errors
+          ? Object.values(result.errors).flat().join(' ')
+          : null
+        throw new Error(
+          validationMessage || result?.message || `Error ${response.status}: No se pudo guardar la gestión`,
+        )
       }
 
-      commit('UPDATE_SOLICITUD_ESTADO', payload)
+      commit('UPDATE_SOLICITUD_GESTION', payload)
     },
   },
 })
